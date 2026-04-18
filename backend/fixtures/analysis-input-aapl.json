@@ -1,0 +1,122 @@
+{
+  "company": {
+    "ticker": "AAPL",
+    "company_name": "Apple Inc.",
+    "cik": "0000320193",
+    "exchange": "NASDAQ",
+    "sector": "Technology",
+    "industry": "Consumer Electronics",
+    "currency": "USD",
+    "country": "United States",
+    "website": "https://www.apple.com"
+  },
+  "financials": {
+    "reporting_basis": "annual_plus_ttm",
+    "latest_fiscal_year": 2024,
+    "latest_fiscal_period": "TTM",
+    "periods": [
+      {
+        "period_end": "2022-09-24",
+        "fiscal_year": 2022,
+        "fiscal_period": "FY",
+        "revenue_usd": 394328000000,
+        "net_income_usd": 99803000000,
+        "diluted_eps": 6.11,
+        "gross_margin": 0.433,
+        "operating_margin": 0.302,
+        "free_cash_flow_usd": 111443000000,
+        "cash_and_equivalents_usd": 23646000000,
+        "total_debt_usd": 120069000000,
+        "shares_outstanding": 15943425000,
+        "revenue_yoy_growth": 0.078,
+        "net_income_yoy_growth": 0.055
+      },
+      {
+        "period_end": "2023-09-30",
+        "fiscal_year": 2023,
+        "fiscal_period": "FY",
+        "revenue_usd": 383285000000,
+        "net_income_usd": 96995000000,
+        "diluted_eps": 6.13,
+        "gross_margin": 0.441,
+        "operating_margin": 0.298,
+        "free_cash_flow_usd": 99584000000,
+        "cash_and_equivalents_usd": 29965000000,
+        "total_debt_usd": 111088000000,
+        "shares_outstanding": 15550610000,
+        "revenue_yoy_growth": -0.028,
+        "net_income_yoy_growth": -0.028
+      },
+      {
+        "period_end": "2024-09-28",
+        "fiscal_year": 2024,
+        "fiscal_period": "TTM",
+        "revenue_usd": 391035000000,
+        "net_income_usd": 96900000000,
+        "diluted_eps": 6.43,
+        "gross_margin": 0.462,
+        "operating_margin": 0.312,
+        "free_cash_flow_usd": 108800000000,
+        "cash_and_equivalents_usd": 29943000000,
+        "total_debt_usd": 106629000000,
+        "shares_outstanding": 15120000000,
+        "revenue_yoy_growth": 0.02,
+        "net_income_yoy_growth": -0.001
+      }
+    ]
+  },
+  "filings": [
+    {
+      "accession_number": "0000320193-24-000123",
+      "filing_type": "10-K",
+      "filing_date": "2024-11-01",
+      "period_end": "2024-09-28",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/320193/000032019324000123/0000320193-24-000123-index.htm",
+      "primary_document_url": "https://www.sec.gov/Archives/edgar/data/320193/000032019324000123/aapl-20240928.htm",
+      "description": "Annual report"
+    },
+    {
+      "accession_number": "0000320193-25-000073",
+      "filing_type": "10-Q",
+      "filing_date": "2025-02-01",
+      "period_end": "2024-12-28",
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/320193/000032019325000073/0000320193-25-000073-index.htm",
+      "primary_document_url": "https://www.sec.gov/Archives/edgar/data/320193/000032019325000073/aapl-20241228.htm",
+      "description": "Quarterly report"
+    },
+    {
+      "accession_number": "0000320193-25-000091",
+      "filing_type": "8-K",
+      "filing_date": "2025-01-30",
+      "period_end": null,
+      "filing_url": "https://www.sec.gov/Archives/edgar/data/320193/000032019325000091/0000320193-25-000091-index.htm",
+      "primary_document_url": "https://www.sec.gov/Archives/edgar/data/320193/000032019325000091/aapl-20250130.htm",
+      "description": "Earnings release furnished under Item 2.02",
+      "items": [
+        "2.02",
+        "9.01"
+      ]
+    }
+  ],
+  "marketData": {
+    "as_of": "2025-02-14T21:00:00Z",
+    "price_usd": 241.53,
+    "market_cap_usd": 3654000000000,
+    "enterprise_value_usd": 3731000000000,
+    "price_to_earnings": 37.6,
+    "price_to_sales": 9.3,
+    "dividend_yield": 0.0046,
+    "fifty_two_week_high_usd": 244.63,
+    "fifty_two_week_low_usd": 164.08,
+    "historical_prices": [
+      181.86,
+      186.86,
+      193.58,
+      205.35,
+      221.27,
+      227.63,
+      232.98,
+      241.53
+    ]
+  }
+}
