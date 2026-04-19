@@ -3,17 +3,25 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+from pathlib import Path
 from pydantic import BaseModel, ConfigDict
 
+from backend.app.analysis import run_analysis_from_fixture
 from backend.app.config import get_settings
 from backend.app.errors import AppError
-from backend.app.models import AnalysisInput
+from backend.app.models import AnalysisInput, AnalysisResponse
 from backend.app.services.ingestion import run_ingestion
 from backend.app.services.storage import StorageService
 
 
 router = APIRouter()
+
+_templates = Jinja2Templates(
+    directory=str(Path(__file__).parent.parent.parent / "templates")
+)
 
 
 class HealthResponse(BaseModel):
@@ -84,3 +92,34 @@ async def get_analysis_input(ticker: str) -> AnalysisInput:
         return AnalysisInput.model_validate(payload)
     except AppError as error:
         raise _to_http_exception(error) from error
+
+
+@router.get("/analysis/{ticker}", response_model=AnalysisResponse)
+async def get_analysis(ticker: str) -> AnalysisResponse:
+    """Day 1 stub: assemble a mock analysis response from the fixture input."""
+    normalized_ticker = ticker.strip().upper()
+    try:
+        return run_analysis_from_fixture(normalized_ticker)
+    except AppError as error:
+        raise _to_http_exception(error) from error
+
+
+@router.get("/analysis/{ticker}/dashboard", response_class=HTMLResponse)
+async def get_analysis_dashboard(ticker: str, request: Request) -> HTMLResponse:
+    """Return an HTML dashboard for the analysis of the given ticker."""
+    normalized_ticker = ticker.strip().upper()
+    try:
+        result: AnalysisResponse = run_analysis_from_fixture(normalized_ticker)
+    except AppError as error:
+        raise _to_http_exception(error) from error
+
+    return _templates.TemplateResponse(
+        request=request,
+        name="analysis_dashboard.html",
+        context={
+            "ticker": normalized_ticker,
+            "generated_at": result.generated_at,
+            "source": result.source,
+            "data": result.model_dump(),
+        },
+    )

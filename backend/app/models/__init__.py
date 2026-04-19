@@ -1,19 +1,45 @@
 """Shared backend data models."""
 
+from .analysis_output import (
+    AnalysisJobStatus,
+    AnalysisResponse,
+    DocumentSummary,
+    ForecastScenario,
+    InvestmentVerdict,
+    JobState,
+    LongTermRating,
+    PeerComparison,
+    PillarScore,
+    ScenarioName,
+    ScoreBreakdown,
+    ScorePillar,
+)
 from .contracts import (
     AnalysisInput,
     CompanySnapshot,
-    FinancialPeriod,
     FilingRecord,
+    FinancialPeriod,
     MarketDataSnapshot,
     NormalizedFinancials,
 )
 
 __all__ = [
     "AnalysisInput",
+    "AnalysisJobStatus",
+    "AnalysisResponse",
     "CompanySnapshot",
-    "FinancialPeriod",
+    "DocumentSummary",
     "FilingRecord",
+    "FinancialPeriod",
+    "ForecastScenario",
+    "InvestmentVerdict",
+    "JobState",
+    "LongTermRating",
     "MarketDataSnapshot",
     "NormalizedFinancials",
+    "PeerComparison",
+    "PillarScore",
+    "ScenarioName",
+    "ScoreBreakdown",
+    "ScorePillar",
 ]
