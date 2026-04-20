@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import CompanyHeader from "@/components/CompanyHeader";
 import FinancialsTable from "@/components/FinancialsTable";
 import ForecastTable from "@/components/ForecastTable";
+import Glossary from "@/components/Glossary";
 import MarketDataCard from "@/components/MarketDataCard";
 import PeersTable from "@/components/PeersTable";
 import RecentFilings from "@/components/RecentFilings";
@@ -43,7 +44,7 @@ export default async function AnalysisPage({
   const sourceStyle = SOURCE_STYLES[data.source] ?? SOURCE_STYLES.live;
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-10 space-y-6">
+    <div className="max-w-7xl mx-auto px-6 py-10 space-y-6">
       <div className="flex items-center justify-between">
         <Link
           href="/"
@@ -102,29 +103,31 @@ export default async function AnalysisPage({
         generatedAt={data.generated_at}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <ScoreCard score={data.score} />
-        </div>
-        <div className="lg:col-span-1">
-          <VerdictCard verdict={data.verdict} />
-        </div>
-      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_17rem] gap-8">
+        <main className="space-y-6 min-w-0">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <ScoreCard score={data.score} />
+            </div>
+            <div className="lg:col-span-1 space-y-6">
+              <VerdictCard verdict={data.verdict} />
+              <MarketDataCard market={data.analysis_input.marketData} />
+            </div>
+          </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
           <ForecastTable scenarios={data.forecast} />
-        </div>
-        <div className="lg:col-span-1">
-          <MarketDataCard market={data.analysis_input.marketData} />
-        </div>
+
+          <PeersTable peers={data.peers} />
+
+          <FinancialsTable financials={data.analysis_input.financials} />
+
+          <RecentFilings filings={data.analysis_input.filings} />
+        </main>
+
+        <aside className="lg:sticky lg:top-6 lg:self-start">
+          <Glossary />
+        </aside>
       </div>
-
-      <PeersTable peers={data.peers} />
-
-      <FinancialsTable financials={data.analysis_input.financials} />
-
-      <RecentFilings filings={data.analysis_input.filings} />
 
       <p className="text-xs text-[color:var(--muted)] text-center pt-4 font-mono">
         methodology version{" "}

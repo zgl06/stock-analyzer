@@ -62,13 +62,13 @@ export default function ForecastTable({ scenarios }: ForecastTableProps) {
                 </dd>
               </div>
               <div className="flex justify-between">
-                <dt className="opacity-70">Op. margin (end)</dt>
+                <dt className="opacity-70">Op. profit % (yr 5)</dt>
                 <dd className="font-mono font-medium">
                   {formatPercent(scenario.operating_margin_end)}
                 </dd>
               </div>
               <div className="flex justify-between">
-                <dt className="opacity-70">Terminal mult.</dt>
+                <dt className="opacity-70">Year-5 P/E</dt>
                 <dd className="font-mono font-medium">
                   {formatMultiple(scenario.terminal_multiple)}
                 </dd>
@@ -80,11 +80,6 @@ export default function ForecastTable({ scenarios }: ForecastTableProps) {
                 </dd>
               </div>
             </dl>
-            {scenario.assumptions && (
-              <p className="mt-3 text-xs opacity-80 leading-relaxed">
-                {scenario.assumptions}
-              </p>
-            )}
           </div>
         ))}
       </div>
