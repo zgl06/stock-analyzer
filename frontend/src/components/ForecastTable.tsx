@@ -7,16 +7,22 @@ interface ForecastTableProps {
 }
 
 const SCENARIO_STYLES: Record<ScenarioName, string> = {
-  bear: "bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-200",
-  base: "bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-200",
-  bull: "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-200",
+  bear: "border-rose-400/30 bg-rose-400/5 text-rose-200",
+  base: "border-[color:var(--line-strong)] bg-[color:var(--surface-raised)] text-[color:var(--foreground)]",
+  bull: "border-emerald-400/40 bg-emerald-400/8 text-emerald-100 shadow-[0_0_24px_-12px_rgba(52,211,153,0.6)]",
+};
+
+const SCENARIO_DOT: Record<ScenarioName, string> = {
+  bear: "bg-rose-400",
+  base: "bg-teal-400",
+  bull: "bg-emerald-400",
 };
 
 export default function ForecastTable({ scenarios }: ForecastTableProps) {
   if (scenarios.length === 0) {
     return (
-      <Card title="Forecast scenarios">
-        <p className="text-sm text-slate-500 dark:text-slate-400">
+      <Card eyebrow="Forecast" title="Scenario forecasts">
+        <p className="text-sm text-[color:var(--muted)]">
           No forecast scenarios available.
         </p>
       </Card>
@@ -24,22 +30,31 @@ export default function ForecastTable({ scenarios }: ForecastTableProps) {
   }
 
   return (
-    <Card title="Forecast scenarios" subtitle="3-5 year scenario model">
+    <Card
+      eyebrow="Forecast"
+      title="Scenario forecasts"
+      subtitle="Bear / base / bull, deterministic by construction"
+    >
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {scenarios.map((scenario) => (
           <div
             key={scenario.scenario}
-            className={`rounded-lg p-4 border border-slate-200 dark:border-slate-700 ${SCENARIO_STYLES[scenario.scenario]}`}
+            className={`rounded-xl p-4 border ${SCENARIO_STYLES[scenario.scenario]}`}
           >
             <div className="flex items-baseline justify-between">
-              <div className="font-semibold uppercase tracking-wider text-sm">
-                {titleCase(scenario.scenario)}
+              <div className="flex items-center gap-2">
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${SCENARIO_DOT[scenario.scenario]}`}
+                />
+                <div className="font-semibold uppercase tracking-wider text-xs font-mono">
+                  {titleCase(scenario.scenario)}
+                </div>
               </div>
-              <div className="text-xs opacity-70">
+              <div className="text-[10px] font-mono opacity-70">
                 {scenario.horizon_years}y
               </div>
             </div>
-            <dl className="mt-3 space-y-1.5 text-sm">
+            <dl className="mt-4 space-y-2 text-sm">
               <div className="flex justify-between">
                 <dt className="opacity-70">Revenue CAGR</dt>
                 <dd className="font-mono font-medium">
@@ -58,7 +73,7 @@ export default function ForecastTable({ scenarios }: ForecastTableProps) {
                   {formatMultiple(scenario.terminal_multiple)}
                 </dd>
               </div>
-              <div className="flex justify-between pt-1 border-t border-slate-200/50 dark:border-slate-700/50 mt-1">
+              <div className="flex justify-between pt-2 border-t border-current/15 mt-1">
                 <dt className="opacity-70">Annualized return</dt>
                 <dd className="font-mono font-semibold">
                   {formatPercent(scenario.expected_annualized_return)}

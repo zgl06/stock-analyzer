@@ -15,8 +15,8 @@ export default function FinancialsTable({ financials }: FinancialsTableProps) {
 
   if (periods.length === 0) {
     return (
-      <Card title="Financials">
-        <p className="text-sm text-slate-500 dark:text-slate-400">
+      <Card eyebrow="Financials" title="Normalized financials">
+        <p className="text-sm text-[color:var(--muted)]">
           No financial periods available.
         </p>
       </Card>
@@ -25,31 +25,32 @@ export default function FinancialsTable({ financials }: FinancialsTableProps) {
 
   return (
     <Card
-      title="Financials"
-      subtitle={`Reporting basis: ${financials.reporting_basis} · latest ${financials.latest_fiscal_period} ${financials.latest_fiscal_year}`}
+      eyebrow="Financials"
+      title="Normalized financials"
+      subtitle={`${financials.reporting_basis} basis · latest ${financials.latest_fiscal_period} ${financials.latest_fiscal_year}`}
     >
       <div className="overflow-x-auto -mx-6">
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
-              <th className="px-6 py-2 font-medium">Period</th>
-              <th className="px-3 py-2 font-medium text-right">Revenue</th>
-              <th className="px-3 py-2 font-medium text-right">Net income</th>
-              <th className="px-3 py-2 font-medium text-right">EPS</th>
-              <th className="px-3 py-2 font-medium text-right">GM</th>
-              <th className="px-3 py-2 font-medium text-right">OM</th>
-              <th className="px-3 py-2 font-medium text-right">FCF</th>
-              <th className="px-3 py-2 font-medium text-right">Cash</th>
-              <th className="px-6 py-2 font-medium text-right">Debt</th>
+            <tr className="text-left text-[10px] uppercase tracking-[0.18em] font-mono text-[color:var(--muted)] border-b border-[color:var(--line)]">
+              <th className="px-6 py-3 font-medium">Period</th>
+              <th className="px-3 py-3 font-medium text-right">Revenue</th>
+              <th className="px-3 py-3 font-medium text-right">Net income</th>
+              <th className="px-3 py-3 font-medium text-right">EPS</th>
+              <th className="px-3 py-3 font-medium text-right">GM</th>
+              <th className="px-3 py-3 font-medium text-right">OM</th>
+              <th className="px-3 py-3 font-medium text-right">FCF</th>
+              <th className="px-3 py-3 font-medium text-right">Cash</th>
+              <th className="px-6 py-3 font-medium text-right">Debt</th>
             </tr>
           </thead>
           <tbody>
             {periods.map((period) => (
               <tr
                 key={`${period.fiscal_year}-${period.fiscal_period}`}
-                className="border-b border-slate-100 dark:border-slate-800 last:border-0"
+                className="border-b border-[color:var(--line)] last:border-0 hover:bg-[color:var(--surface-raised)] transition-colors"
               >
-                <td className="px-6 py-3 font-mono">
+                <td className="px-6 py-3 font-mono text-[color:var(--accent-2)]">
                   {period.fiscal_period} {period.fiscal_year}
                 </td>
                 <td className="px-3 py-3 text-right font-mono">

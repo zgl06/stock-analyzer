@@ -18,17 +18,23 @@ interface RowProps {
 
 function Row({ label, value }: RowProps) {
   return (
-    <div className="flex justify-between text-sm py-1.5 border-b border-slate-100 dark:border-slate-800 last:border-0">
-      <span className="text-slate-500 dark:text-slate-400">{label}</span>
-      <span className="font-mono font-medium">{value}</span>
+    <div className="flex justify-between text-sm py-2 border-b border-[color:var(--line)] last:border-0">
+      <span className="text-[color:var(--muted)]">{label}</span>
+      <span className="font-mono font-medium text-[color:var(--foreground)]">
+        {value}
+      </span>
     </div>
   );
 }
 
 export default function MarketDataCard({ market }: MarketDataCardProps) {
   return (
-    <Card title="Market data" subtitle={`As of ${formatDateTime(market.as_of)}`}>
-      <div className="text-3xl font-semibold mb-4">
+    <Card
+      eyebrow="Market"
+      title="Market data"
+      subtitle={`As of ${formatDateTime(market.as_of)}`}
+    >
+      <div className="text-3xl font-semibold font-mono mb-5 text-gradient-accent">
         {formatCurrency(market.price_usd, { compact: false, digits: 2 })}
       </div>
       <div className="space-y-0">

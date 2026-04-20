@@ -1,26 +1,161 @@
 @import "tailwindcss";
 
+/* ---------- Design tokens ---------- */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #060a09;
+  --foreground: #e7f1ec;
+
+  --surface: rgba(14, 22, 19, 0.6);
+  --surface-strong: rgba(18, 28, 24, 0.85);
+  --surface-raised: rgba(22, 34, 28, 0.7);
+
+  --line: rgba(52, 211, 153, 0.12);
+  --line-strong: rgba(94, 234, 212, 0.22);
+
+  --muted: #7d8e87;
+  --muted-strong: #a4b5ad;
+
+  --accent: #34d399;
+  --accent-soft: #10b981;
+  --accent-2: #5eead4;
+  --accent-glow: rgba(52, 211, 153, 0.25);
+
+  --warning: #fbbf24;
+  --danger: #fb7185;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-strong: var(--surface-strong);
+  --color-surface-raised: var(--surface-raised);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-muted: var(--muted);
+  --color-muted-strong: var(--muted-strong);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-2: var(--accent-2);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+html,
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Grid + gradient backdrop, layered like the AERIX hero */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    linear-gradient(to right, rgba(94, 234, 212, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(94, 234, 212, 0.05) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 30%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 30%, transparent 75%);
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  top: -20%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1200px;
+  height: 900px;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(40% 50% at 50% 50%, rgba(52, 211, 153, 0.28) 0%, transparent 70%),
+    radial-gradient(35% 45% at 30% 60%, rgba(20, 184, 166, 0.22) 0%, transparent 70%),
+    radial-gradient(35% 45% at 70% 60%, rgba(94, 234, 212, 0.18) 0%, transparent 70%);
+  filter: blur(40px);
+  opacity: 0.7;
+}
+
+/* Anything inside <main>/page should sit above the backdrop */
+main,
+header,
+footer {
+  position: relative;
+  z-index: 1;
+}
+
+/* Selection */
+::selection {
+  background: rgba(52, 211, 153, 0.35);
+  color: #ecfdf5;
+}
+
+/* Scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(94, 234, 212, 0.25) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(94, 234, 212, 0.18);
+  border-radius: 8px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(94, 234, 212, 0.35);
+}
+
+/* Reusable utilities */
+.surface {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.surface-strong {
+  background: var(--surface-strong);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.glow-accent {
+  box-shadow:
+    0 0 0 1px rgba(52, 211, 153, 0.25),
+    0 12px 40px -12px rgba(52, 211, 153, 0.35);
+}
+
+.text-gradient-accent {
+  background: linear-gradient(120deg, #5eead4 0%, #34d399 50%, #a7f3d0 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.divider-fade {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(94, 234, 212, 0.25),
+    transparent
+  );
+  height: 1px;
 }
