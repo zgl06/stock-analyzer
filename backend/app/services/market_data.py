@@ -49,7 +49,9 @@ class MarketDataService:
             enterprise_value_usd=self._to_float(info.get("enterpriseValue")),
             price_to_earnings=self._to_float(info.get("trailingPE")),
             price_to_sales=self._to_float(info.get("priceToSalesTrailing12Months")),
-            dividend_yield=self._to_float(info.get("dividendYield")),
+            dividend_yield=self._normalize_dividend_yield(
+                info.get("dividendYield")
+            ),
             fifty_two_week_high_usd=self._to_float(
                 self._coalesce(fast_info.get("yearHigh"), info.get("fiftyTwoWeekHigh"))
             ),
@@ -168,3 +170,26 @@ class MarketDataService:
         if not math.isfinite(result):
             return None
         return result
+
+    @classmethod
+    def _normalize_dividend_yield(cls, value: Any) -> float | None:
+        """Return a fractional yield (0.0086 = 0.86%).
+
+        Modern yfinance returns ``info["dividendYield"]`` in percent form
+        (e.g. ``0.86`` meaning 0.86%, ``7.2`` meaning 7.2%). The frontend
+        formatter multiplies by 100, so we divide here to keep the stored
+        value as a fraction. Values above 50 are treated as already
+        fractional (paranoid guard for legacy yfinance payloads that
+        returned 0.0086-style fractions -- extremely uncommon now).
+        """
+        result = cls._to_float(value)
+        if result is None or not math.isfinite(result):
+            return None
+        if result < 0:
+            return None
+        # Reasonable dividend yields are 0-15%. Anything that looks like
+        # it was already a fraction (>50, which would be absurd as percent)
+        # we pass through. Everything else is treated as a percent value.
+        if result > 50.0:
+            return None
+        return result / 100.0
