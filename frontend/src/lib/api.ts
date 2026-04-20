@@ -13,9 +13,13 @@ export class ApiError extends Error {
   }
 }
 
-export async function fetchAnalysis(ticker: string): Promise<AnalysisResponse> {
+export async function fetchAnalysis(
+  ticker: string,
+  options: { refresh?: boolean } = {},
+): Promise<AnalysisResponse> {
   const normalized = ticker.trim().toUpperCase();
-  const url = `${API_BASE_URL}/analysis/${encodeURIComponent(normalized)}`;
+  const search = options.refresh ? "?refresh=true" : "";
+  const url = `${API_BASE_URL}/analysis/${encodeURIComponent(normalized)}${search}`;
 
   const response = await fetch(url, {
     cache: "no-store",
