@@ -39,10 +39,6 @@ export default function MarketDataCard({ market }: MarketDataCardProps) {
       </div>
       <div className="space-y-0">
         <Row label="Market cap" value={formatCurrency(market.market_cap_usd)} />
-        <Row
-          label="Enterprise value"
-          value={formatCurrency(market.enterprise_value_usd)}
-        />
         <Row label="P/E" value={formatMultiple(market.price_to_earnings)} />
         <Row label="P/S" value={formatMultiple(market.price_to_sales)} />
         <Row
