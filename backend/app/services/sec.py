@@ -16,6 +16,7 @@ RELEVANT_8K_ITEMS = {"2.02", "7.01", "8.01", "9.01"}
 
 class SecService:
     _ticker_mapping_cache: dict[str, Any] | None = None
+    _company_facts_cache: dict[str, dict[str, Any]] = {}
 
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
@@ -104,6 +105,32 @@ class SecService:
             )
 
         return filings, submissions
+
+    async def fetch_company_facts(self, cik: str) -> dict[str, Any] | None:
+        """Fetch the SEC XBRL companyfacts payload for a CIK.
+
+        Returns ``None`` if the company has no companyfacts record (e.g. a
+        foreign private issuer that doesn't file XBRL). Process-level cache
+        is keyed by CIK so repeated calls during the same uvicorn run only
+        hit data.sec.gov once.
+        """
+        normalized_cik = str(int(str(cik).strip())).zfill(10)
+        cache = self.__class__._company_facts_cache
+        if normalized_cik in cache:
+            return cache[normalized_cik]
+
+        url = (
+            f"{self.settings.sec_submissions_base_url}/api/xbrl/companyfacts/"
+            f"CIK{normalized_cik}.json"
+        )
+        try:
+            payload = await self._get_json(url)
+        except NotFoundError:
+            cache[normalized_cik] = {}
+            return None
+
+        cache[normalized_cik] = payload
+        return payload
 
     async def _fetch_ticker_mapping(self) -> dict[str, Any]:
         if self.__class__._ticker_mapping_cache is None:

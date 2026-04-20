@@ -1,14 +1,20 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from backend.app.config import get_settings
+from backend.app.errors import AppError
 from backend.app.models import AnalysisInput
 from backend.app.services.market_data import MarketDataService
 from backend.app.services.normalize import build_analysis_input
 from backend.app.services.sec import SecService
+from backend.app.services.sec_facts import extract_period_metrics
 from backend.app.services.storage import StorageService
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -30,11 +36,25 @@ async def run_ingestion(ticker: str) -> IngestionResult:
         company,
     )
 
+    sec_period_metrics: dict = {}
+    try:
+        company_facts = await sec_service.fetch_company_facts(company.cik)
+        sec_period_metrics = extract_period_metrics(company_facts)
+    except AppError as error:
+        logger.info(
+            "SEC companyfacts fetch failed for %s (cik=%s): %s; "
+            "continuing with yfinance only.",
+            company.ticker,
+            company.cik,
+            error.message,
+        )
+
     analysis_input = build_analysis_input(
         company=company,
         filings=filings,
         market_data=market_data,
         market_raw_payload=market_raw_payload,
+        sec_period_metrics=sec_period_metrics,
     )
     generated_at = datetime.now(timezone.utc)
 
