@@ -55,12 +55,6 @@ export default function VerdictCard({ verdict }: VerdictCardProps) {
             </div>
           </div>
         )}
-
-        {verdict.summary && (
-          <p className="text-sm text-[color:var(--muted-strong)] leading-relaxed border-t border-[color:var(--line)] pt-4">
-            {verdict.summary}
-          </p>
-        )}
       </div>
     </Card>
   );
