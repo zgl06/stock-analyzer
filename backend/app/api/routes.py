@@ -9,12 +9,16 @@ from fastapi.templating import Jinja2Templates
 from pathlib import Path
 from pydantic import BaseModel, ConfigDict
 
-from backend.app.analysis import run_analysis_from_fixture
+import logging
+
+from backend.app.analysis import run_analysis_from_fixture, run_analysis_pipeline
 from backend.app.config import get_settings
-from backend.app.errors import AppError
+from backend.app.errors import AppError, NotFoundError
 from backend.app.models import AnalysisInput, AnalysisResponse
 from backend.app.services.ingestion import run_ingestion
 from backend.app.services.storage import StorageService
+
+logger = logging.getLogger(__name__)
 
 
 router = APIRouter()
@@ -94,24 +98,88 @@ async def get_analysis_input(ticker: str) -> AnalysisInput:
         raise _to_http_exception(error) from error
 
 
-@router.get("/analysis/{ticker}", response_model=AnalysisResponse)
-async def get_analysis(ticker: str) -> AnalysisResponse:
-    """Day 1 stub: assemble a mock analysis response from the fixture input."""
+async def _resolve_analysis(ticker: str, *, refresh: bool = False) -> AnalysisResponse:
+    """Resolve an `AnalysisResponse` for the given ticker.
+
+    Lookup order:
+      1. Bundled fixture (fast, deterministic; currently AAPL only).
+      2. Latest persisted `AnalysisInput` from Supabase (cached live data),
+         unless `refresh=True` is passed -- callers can force a fresh
+         ingestion to pick up changes in the normalization layer.
+      3. Live ingestion: fetch SEC filings + market data, persist, then
+         run the analysis pipeline. Any unknown / delisted ticker
+         surfaces as a clean 404.
+    """
     normalized_ticker = ticker.strip().upper()
+
     try:
         return run_analysis_from_fixture(normalized_ticker)
+    except NotFoundError:
+        pass
     except AppError as error:
         raise _to_http_exception(error) from error
+
+    settings = get_settings()
+    if not settings.has_supabase:
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                f"No fixture is available for '{normalized_ticker}' and Supabase "
+                "storage is not configured. Configure Supabase to enable live "
+                "ingestion."
+            ),
+        )
+
+    storage = StorageService(settings)
+    if not refresh:
+        try:
+            payload: dict[str, Any] = await storage.get_latest_analysis_input(
+                normalized_ticker
+            )
+            analysis_input = AnalysisInput.model_validate(payload)
+            return run_analysis_pipeline(analysis_input, source="live")
+        except NotFoundError:
+            logger.info(
+                "No stored analysis for %s; running live ingestion.",
+                normalized_ticker,
+            )
+        except AppError as error:
+            raise _to_http_exception(error) from error
+    else:
+        logger.info(
+            "Refresh requested for %s; bypassing storage cache.",
+            normalized_ticker,
+        )
+
+    try:
+        result = await run_ingestion(normalized_ticker)
+    except NotFoundError as error:
+        raise HTTPException(status_code=404, detail=error.message) from error
+    except AppError as error:
+        raise _to_http_exception(error) from error
+
+    return run_analysis_pipeline(result.analysis_input, source="live")
+
+
+@router.get("/analysis/{ticker}", response_model=AnalysisResponse)
+async def get_analysis(ticker: str, refresh: bool = False) -> AnalysisResponse:
+    """Assemble an analysis response from fixture or persisted live data.
+
+    Pass `?refresh=true` to bypass the Supabase cache and re-run live
+    ingestion. Useful after upgrading the normalization or scoring code,
+    when stale cached `AnalysisInput` blobs would otherwise hide the
+    improvement.
+    """
+    return await _resolve_analysis(ticker, refresh=refresh)
 
 
 @router.get("/analysis/{ticker}/dashboard", response_class=HTMLResponse)
-async def get_analysis_dashboard(ticker: str, request: Request) -> HTMLResponse:
+async def get_analysis_dashboard(
+    ticker: str, request: Request, refresh: bool = False
+) -> HTMLResponse:
     """Return an HTML dashboard for the analysis of the given ticker."""
+    result = await _resolve_analysis(ticker, refresh=refresh)
     normalized_ticker = ticker.strip().upper()
-    try:
-        result: AnalysisResponse = run_analysis_from_fixture(normalized_ticker)
-    except AppError as error:
-        raise _to_http_exception(error) from error
 
     return _templates.TemplateResponse(
         request=request,

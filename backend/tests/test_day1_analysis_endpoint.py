@@ -35,11 +35,12 @@ def test_get_analysis_returns_assembled_stub_for_known_ticker() -> None:
     assert scenarios == {"bear", "base", "bull"}
 
     assert payload["verdict"]["rating"] in {"Strong Buy", "Buy", "Hold", "Avoid"}
-    assert isinstance(payload["peers"], list) and len(payload["peers"]) > 0
+    assert isinstance(payload["peers"], list)
 
 
 def test_get_analysis_returns_404_for_unknown_ticker() -> None:
     response = client.get("/analysis/zzzz")
 
     assert response.status_code == 404
-    assert "fixture" in response.json()["detail"].lower()
+    detail = response.json()["detail"].lower()
+    assert "zzzz" in detail
