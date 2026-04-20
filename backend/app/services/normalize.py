@@ -42,7 +42,6 @@ def build_normalized_financials(
         sec_period_metrics=sec_period_metrics or {},
     )
     if periods:
-        periods = sorted(periods, key=lambda period: period.period_end)
         latest = periods[-1]
         return NormalizedFinancials(
             reporting_basis="annual_plus_ttm",
@@ -147,6 +146,10 @@ def _build_periods_from_yfinance(
     if not periods and sec_metrics:
         periods = _build_periods_from_sec_only(sec_metrics)
 
+    # yfinance returns periods newest-first; we need ascending order
+    # before computing YoY growth so each period's "previous" is the
+    # older year (otherwise every YoY comes out negated).
+    periods = sorted(periods, key=lambda period: period.period_end)
     periods = _add_growth_rates(periods)
     if periods:
         periods[-1] = periods[-1].model_copy(update={"fiscal_period": "TTM"})
