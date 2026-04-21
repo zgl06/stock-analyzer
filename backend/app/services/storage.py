@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime
+from datetime import date, datetime
 import math
 from typing import Any
 
@@ -169,12 +169,15 @@ class StorageService:
         financials: NormalizedFinancials,
         filings: list[FilingRecord],
     ) -> None:
-        source_accession = filings[0].accession_number if filings else None
         for period in financials.periods:
             payload = {
                 "company_id": company_id,
                 "reporting_basis": financials.reporting_basis,
-                "source_filing_accession": source_accession,
+                "source_filing_accession": self._match_source_accession(
+                    period_end=period.period_end,
+                    fiscal_period=period.fiscal_period,
+                    filings=filings,
+                ),
                 **period.model_dump(mode="json"),
             }
             payload = self._sanitize_json_value(payload)
@@ -215,3 +218,53 @@ class StorageService:
         if isinstance(value, float):
             return value if math.isfinite(value) else None
         return value
+
+    @staticmethod
+    def _match_source_accession(
+        *,
+        period_end: date,
+        fiscal_period: str,
+        filings: list[FilingRecord],
+    ) -> str | None:
+        supported_filings = [
+            filing for filing in filings if filing.filing_type in {"10-K", "10-Q"}
+        ]
+        if not supported_filings:
+            return None
+
+        if fiscal_period == "FY":
+            exact_matches = [
+                filing
+                for filing in supported_filings
+                if filing.period_end == period_end and filing.filing_type == "10-K"
+            ]
+            if not exact_matches:
+                exact_matches = [
+                    filing for filing in supported_filings if filing.period_end == period_end
+                ]
+            if not exact_matches:
+                return None
+            return StorageService._latest_filing(exact_matches).accession_number
+
+        if fiscal_period == "TTM":
+            covering_filings = [
+                filing
+                for filing in supported_filings
+                if filing.period_end is not None and filing.period_end <= period_end
+            ]
+            if not covering_filings:
+                return None
+            return StorageService._latest_filing(covering_filings).accession_number
+
+        return None
+
+    @staticmethod
+    def _latest_filing(filings: list[FilingRecord]) -> FilingRecord:
+        return max(
+            filings,
+            key=lambda filing: (
+                filing.period_end or date.min,
+                filing.filing_date,
+                filing.accession_number,
+            ),
+        )

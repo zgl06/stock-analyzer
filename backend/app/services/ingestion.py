@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from backend.app.config import get_settings
-from backend.app.errors import AppError
+from backend.app.errors import AppError, NotFoundError, PersistenceError
 from backend.app.models import AnalysisInput
 from backend.app.services.market_data import MarketDataService
 from backend.app.services.normalize import build_analysis_input
@@ -31,6 +31,11 @@ async def run_ingestion(ticker: str) -> IngestionResult:
 
     company = await sec_service.resolve_company(ticker)
     filings, raw_filings_payload = await sec_service.fetch_recent_filings(company.cik)
+    if not filings:
+        raise NotFoundError(
+            f"No supported SEC filings were found for ticker '{company.ticker}'."
+        )
+
     market_data, company, market_raw_payload = await market_service.fetch_market_snapshot(
         ticker,
         company,
@@ -58,15 +63,28 @@ async def run_ingestion(ticker: str) -> IngestionResult:
     )
     generated_at = datetime.now(timezone.utc)
 
-    await storage.persist_analysis_input(
-        company=analysis_input.company,
-        filings=analysis_input.filings,
-        raw_filings_payload=raw_filings_payload,
-        market_raw_payload=market_raw_payload,
-        analysis_input=analysis_input,
-        generated_at=generated_at,
-        schema_version=settings.schema_version,
-    )
+    if not settings.has_supabase:
+        logger.info(
+            "Skipping persistence for %s because Supabase is not configured.",
+            analysis_input.company.ticker,
+        )
+    else:
+        try:
+            await storage.persist_analysis_input(
+                company=analysis_input.company,
+                filings=analysis_input.filings,
+                raw_filings_payload=raw_filings_payload,
+                market_raw_payload=market_raw_payload,
+                analysis_input=analysis_input,
+                generated_at=generated_at,
+                schema_version=settings.schema_version,
+            )
+        except PersistenceError as error:
+            logger.warning(
+                "Persistence unavailable for %s: %s",
+                analysis_input.company.ticker,
+                error.message,
+            )
 
     return IngestionResult(
         generated_at=generated_at,
