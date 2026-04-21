@@ -37,7 +37,7 @@ def build_normalized_financials(
     market_raw_payload: dict[str, Any],
     sec_period_metrics: dict[date, dict[str, float]] | None = None,
 ) -> NormalizedFinancials:
-    periods = _build_periods_from_yfinance(
+    periods = _build_periods_from_market_payload(
         market_raw_payload.get("financials", {}),
         sec_period_metrics=sec_period_metrics or {},
     )
@@ -65,7 +65,30 @@ def build_normalized_financials(
     )
 
 
-def _build_periods_from_yfinance(
+def _build_periods_from_market_payload(
+    financials: dict[str, Any],
+    sec_period_metrics: dict[date, dict[str, float]] | None = None,
+) -> list[FinancialPeriod]:
+    annual_periods = sorted(
+        _build_annual_periods_from_yfinance(
+            financials,
+            sec_period_metrics=sec_period_metrics,
+        ),
+        key=lambda period: period.period_end,
+    )
+    ttm_period = _build_ttm_period_from_quarters(financials)
+
+    periods = annual_periods[:]
+    if ttm_period is not None:
+        periods.append(ttm_period)
+    elif periods:
+        periods[-1] = periods[-1].model_copy(update={"fiscal_period": "TTM"})
+
+    periods = _finalize_periods(periods)
+    return _add_growth_rates(periods)
+
+
+def _build_annual_periods_from_yfinance(
     financials: dict[str, Any],
     sec_period_metrics: dict[date, dict[str, float]] | None = None,
 ) -> list[FinancialPeriod]:
@@ -139,21 +162,74 @@ def _build_periods_from_yfinance(
                 "Ordinary Shares Number",
             ),
         )
-        periods.append(period)
+        if _should_keep_period(period):
+            periods.append(period)
 
     # If yfinance returned no income statement at all, fall back to
     # period-ends from SEC company facts so we still get *some* history.
     if not periods and sec_metrics:
         periods = _build_periods_from_sec_only(sec_metrics)
 
-    # yfinance returns periods newest-first; we need ascending order
-    # before computing YoY growth so each period's "previous" is the
-    # older year (otherwise every YoY comes out negated).
-    periods = sorted(periods, key=lambda period: period.period_end)
-    periods = _add_growth_rates(periods)
-    if periods:
-        periods[-1] = periods[-1].model_copy(update={"fiscal_period": "TTM"})
     return periods
+
+
+def _build_ttm_period_from_quarters(financials: dict[str, Any]) -> FinancialPeriod | None:
+    income_records = _sorted_records(financials.get("quarterly_income_stmt") or [])
+    if len(income_records) < 4:
+        return None
+
+    latest_four_income = income_records[-4:]
+    if not _records_form_complete_trailing_year(latest_four_income):
+        return None
+
+    latest_quarter = latest_four_income[-1]
+    period_end = _extract_date(latest_quarter.get("index"))
+    if period_end is None:
+        return None
+
+    latest_balance_record = _latest_record(financials.get("quarterly_balance_sheet") or [])
+    latest_cashflow_records = _sorted_records(financials.get("quarterly_cashflow") or [])[-4:]
+
+    revenue = _sum_metric(
+        latest_four_income,
+        "Total Revenue",
+        "Operating Revenue",
+        "Revenue",
+    )
+    net_income = _sum_metric(
+        latest_four_income,
+        "Net Income",
+        "Net Income Common Stockholders",
+    )
+    gross_profit = _sum_metric(latest_four_income, "Gross Profit")
+    operating_income = _sum_metric(latest_four_income, "Operating Income")
+    diluted_eps = _sum_metric(latest_four_income, "Diluted EPS", "Basic EPS")
+    free_cash_flow = _sum_free_cash_flow(latest_cashflow_records)
+
+    gross_margin = gross_profit / revenue if gross_profit is not None and revenue else None
+    operating_margin = (
+        operating_income / revenue if operating_income is not None and revenue else None
+    )
+
+    return FinancialPeriod(
+        period_end=period_end,
+        fiscal_year=period_end.year,
+        fiscal_period="TTM",
+        revenue_usd=revenue,
+        net_income_usd=net_income,
+        diluted_eps=diluted_eps,
+        gross_margin=gross_margin,
+        operating_margin=operating_margin,
+        free_cash_flow_usd=free_cash_flow,
+        cash_and_equivalents_usd=_pick_cash(latest_balance_record),
+        total_debt_usd=_pick_total_debt(latest_balance_record),
+        shares_outstanding=_pick_number(
+            latest_quarter,
+            "Diluted Average Shares",
+            "Basic Average Shares",
+            "Ordinary Shares Number",
+        ),
+    )
 
 
 def _build_periods_from_sec_only(
@@ -190,7 +266,91 @@ def _build_periods_from_sec_only(
                 total_debt_usd=_sec_total_debt(metrics),
             )
         )
-    return periods
+    return [period for period in periods if _should_keep_period(period)]
+
+
+def _finalize_periods(periods: list[FinancialPeriod]) -> list[FinancialPeriod]:
+    sorted_periods = sorted(periods, key=lambda period: period.period_end)
+
+    latest_ttm_index = None
+    for index, period in enumerate(sorted_periods):
+        if period.fiscal_period == "TTM":
+            latest_ttm_index = index
+
+    finalized: list[FinancialPeriod] = []
+    for index, period in enumerate(sorted_periods):
+        if period.fiscal_period == "TTM" and index != latest_ttm_index:
+            continue
+        finalized.append(period)
+    return finalized
+
+
+def _should_keep_period(period: FinancialPeriod) -> bool:
+    has_core_value = any(
+        value is not None
+        for value in (
+            period.revenue_usd,
+            period.net_income_usd,
+            period.gross_margin,
+            period.operating_margin,
+        )
+    )
+    return has_core_value
+
+
+def _sorted_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return sorted(
+        [record for record in records if _extract_date(record.get("index")) is not None],
+        key=lambda record: _extract_date(record.get("index")) or date.min,
+    )
+
+
+def _latest_record(records: list[dict[str, Any]]) -> dict[str, Any]:
+    sorted_records = _sorted_records(records)
+    return sorted_records[-1] if sorted_records else {}
+
+
+def _records_form_complete_trailing_year(records: list[dict[str, Any]]) -> bool:
+    if len(records) != 4:
+        return False
+
+    period_ends = [_extract_date(record.get("index")) for record in records]
+    if any(period_end is None for period_end in period_ends):
+        return False
+
+    unique_period_ends = {period_end for period_end in period_ends if period_end is not None}
+    if len(unique_period_ends) != 4:
+        return False
+
+    oldest = period_ends[0]
+    newest = period_ends[-1]
+    if oldest is None or newest is None:
+        return False
+
+    return (newest - oldest).days <= 370
+
+
+def _sum_metric(records: list[dict[str, Any]], *keys: str) -> float | None:
+    values: list[float] = []
+    for record in records:
+        value = _pick_number(record, *keys)
+        if value is None:
+            return None
+        values.append(value)
+    return sum(values)
+
+
+def _sum_free_cash_flow(records: list[dict[str, Any]]) -> float | None:
+    if len(records) != 4:
+        return None
+
+    values: list[float] = []
+    for record in records:
+        value = _compute_free_cash_flow(record)
+        if value is None:
+            return None
+        values.append(value)
+    return sum(values)
 
 
 def _sec_total_debt(metrics: dict[str, float]) -> float | None:
