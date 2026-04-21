@@ -33,6 +33,19 @@ This backend now includes the first runnable ingestion path for:
 ## Notes
 - Monetary values are stored in USD.
 - Percentage-style metrics are stored as decimals.
-- Full XBRL extraction is intentionally deferred; first-pass financial periods are best-effort and nullable.
+- Normalized financials prefer quarterly-derived trailing-twelve-month (`TTM`) output when four recent quarters are available; otherwise the latest annual period is labeled `TTM` as a fallback.
+- SEC companyfacts metrics are used as fill-ins when yfinance annual statements omit values such as revenue, margins, cash, debt, or free cash flow.
+- Financial periods that have no revenue, net income, or margin signal are skipped instead of being emitted as mostly-empty rows.
 - `marketData` stays camelCase in serialized JSON so downstream consumers can build against the agreed handoff shape.
 - SEC uses mixed hosts here: ticker mapping on `www.sec.gov`, submissions JSON on `data.sec.gov`, and archive links on `www.sec.gov`.
+- Ingestion still returns a usable `AnalysisInput` when Supabase persistence is unavailable, but persistence is skipped and the condition is logged.
+
+## Manual Validation
+- Run `python backend/scripts/manual_sec_checks.py` to validate the default Person 1 ticker set: `AAPL` (mega-cap), `JPM` (non-tech), and `PLUG` (thinner data coverage).
+- The script checks company resolution, filing availability, market price availability, normalized period generation, and whether persistence succeeded or was skipped because Supabase is not configured.
+
+## Known Data Gaps
+- SEC companyfacts coverage is best-effort and may be absent for some issuers.
+- yfinance field names and financial statement availability vary by ticker and reporting history.
+- Quarterly statements can be incomplete, which forces annual fallback for `TTM`.
+- Persistence depends on Supabase configuration and connectivity; when unavailable, ingestion continues without storage.
