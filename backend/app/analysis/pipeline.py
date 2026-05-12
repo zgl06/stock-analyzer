@@ -17,8 +17,8 @@ from backend.app.services.fixture_loader import load_analysis_input_fixture
 
 from .forecast import build_forecast
 from .peers import select_peers
+from .ranking import build_ranking_context
 from .scoring import score_company
-from .summary import summarize_documents
 from .verdict import assemble_verdict
 
 
@@ -29,14 +29,17 @@ def run_analysis_pipeline(
     analysis_input: AnalysisInput,
     *,
     source: InputSource = "fixture",
-    include_summary: bool = True,
 ) -> AnalysisResponse:
-    """Run all placeholder analysis modules and assemble the response."""
+    """Run all analysis modules and assemble the response.
+
+    document_summary is not populated here; it is attached by the route
+    layer when enable_qualitative_summary is true (L3).
+    """
     score = score_company(analysis_input)
     forecast = build_forecast(analysis_input)
     peers = select_peers(analysis_input)
+    ranking_context = build_ranking_context(analysis_input, peers)
     verdict = assemble_verdict(analysis_input, score, forecast)
-    document_summary = summarize_documents(analysis_input) if include_summary else None
 
     return AnalysisResponse(
         ticker=analysis_input.company.ticker.upper(),
@@ -47,20 +50,13 @@ def run_analysis_pipeline(
         score=score,
         forecast=forecast,
         peers=peers,
+        ranking_context=ranking_context,
         verdict=verdict,
-        document_summary=document_summary,
+        document_summary=None,
     )
 
 
-def run_analysis_from_fixture(
-    ticker: str,
-    *,
-    include_summary: bool = True,
-) -> AnalysisResponse:
+def run_analysis_from_fixture(ticker: str) -> AnalysisResponse:
     """Convenience entry point: load the fixture and run the pipeline."""
     analysis_input = load_analysis_input_fixture(ticker)
-    return run_analysis_pipeline(
-        analysis_input,
-        source="fixture",
-        include_summary=include_summary,
-    )
+    return run_analysis_pipeline(analysis_input, source="fixture")
