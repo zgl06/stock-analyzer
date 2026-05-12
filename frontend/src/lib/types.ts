@@ -9,7 +9,16 @@ export type LongTermRating = "Strong Buy" | "Buy" | "Hold" | "Avoid";
 
 export type ScenarioName = "bear" | "base" | "bull";
 
-export type GuidanceDirection = "up" | "down" | "flat" | "mixed" | "unknown";
+export type DocumentTone = "positive" | "neutral" | "cautious" | "negative" | "mixed";
+
+export type GuidanceFlavor =
+  | "raised"
+  | "reaffirmed"
+  | "lowered"
+  | "withdrawn"
+  | "none_mentioned";
+
+export type EvidenceQuality = "strong" | "moderate" | "thin";
 
 export interface CompanySnapshot {
   ticker: string;
@@ -114,13 +123,16 @@ export interface PeerComparison {
 }
 
 export interface DocumentSummary {
-  management_tone: string | null;
-  guidance_direction: GuidanceDirection;
-  top_risks: string[];
-  top_positives: string[];
-  thesis_paragraph: string | null;
-  source_filings: string[];
-  available: boolean;
+  tone: DocumentTone;
+  thesis: string;
+  positives: string[];
+  risks: string[];
+  guidance_flavor: GuidanceFlavor;
+  evidence_quality: EvidenceQuality;
+  disclaimer: string;
+  prompt_version: string;
+  model_name: string;
+  chunk_ids: string[];
 }
 
 export interface InvestmentVerdict {
@@ -131,12 +143,51 @@ export interface InvestmentVerdict {
   summary: string | null;
 }
 
+export interface AmongPeersRanks {
+  growth_percentile: number | null;
+  profitability_percentile: number | null;
+  valuation_percentile: number | null;
+  composite_proxy_percentile: number | null;
+}
+
+export interface RankingContext {
+  among_peers: AmongPeersRanks;
+  industry_universe_size: number | null;
+  industry_percentile: number | null;
+  market_universe_size: number | null;
+  market_percentile: number | null;
+  methodology_note: string;
+}
+
 export interface AnalysisJobStatus {
   ticker: string;
   state: "queued" | "running" | "completed" | "failed";
   created_at: string;
   updated_at: string;
   error_message: string | null;
+}
+
+export type RelativeModelMethod = "lightgbm" | "score_proxy" | "unavailable";
+
+export interface RelativeTercileEstimate {
+  benchmark_ticker: string;
+  tercile: 1 | 2 | 3 | null;
+  score: number | null;
+  methodology: RelativeModelMethod;
+  detail: string | null;
+}
+
+export interface RelativePerformanceView {
+  horizon_years: number;
+  as_of: string;
+  gics_sector: string | null;
+  sector_etf: string | null;
+  used_parent_etf: boolean;
+  vs_spy: RelativeTercileEstimate;
+  vs_sector: RelativeTercileEstimate;
+  feature_vector_version: string;
+  llm_commentary: string | null;
+  disclaimer: string;
 }
 
 export interface AnalysisResponse {
@@ -148,7 +199,9 @@ export interface AnalysisResponse {
   score: ScoreBreakdown;
   forecast: ForecastScenario[];
   peers: PeerComparison[];
+  ranking_context: RankingContext;
   verdict: InvestmentVerdict;
   document_summary: DocumentSummary | null;
+  relative_performance: RelativePerformanceView | null;
   job: AnalysisJobStatus | null;
 }

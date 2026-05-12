@@ -7,7 +7,9 @@ import ForecastTable from "@/components/ForecastTable";
 import Glossary from "@/components/Glossary";
 import MarketDataCard from "@/components/MarketDataCard";
 import PeersTable from "@/components/PeersTable";
+import RankingContextPanel from "@/components/RankingContextPanel";
 import RecentFilings from "@/components/RecentFilings";
+import RelativeModelCard from "@/components/RelativeModelCard";
 import ScoreCard from "@/components/ScoreCard";
 import VerdictCard from "@/components/VerdictCard";
 import { ApiError, fetchAnalysis } from "@/lib/api";
@@ -64,30 +66,28 @@ export default async function AnalysisPage({
           New search
         </Link>
         <div className="flex items-center gap-3">
-          {data.source !== "fixture" && (
-            <Link
-              href={`/analysis/${normalized}?refresh=true`}
-              prefetch={false}
-              className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] font-mono px-2.5 py-1 rounded-full border border-[color:var(--line-strong)] text-[color:var(--muted-strong)] hover:text-[color:var(--accent-2)] hover:border-[color:var(--accent-2)]/50 transition-colors"
-              title="Bypass cache and re-ingest live data"
+          <Link
+            href={`/analysis/${normalized}?refresh=true`}
+            prefetch={false}
+            className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] font-mono px-2.5 py-1 rounded-full border border-[color:var(--line-strong)] text-[color:var(--muted-strong)] hover:text-[color:var(--accent-2)] hover:border-[color:var(--accent-2)]/50 transition-colors"
+            title="Re-run full ingestion (SEC + market) before analysis"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              className="w-3 h-3"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.25"
+              strokeLinecap="round"
+              strokeLinejoin="round"
             >
-              <svg
-                viewBox="0 0 24 24"
-                className="w-3 h-3"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.25"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M3 12a9 9 0 0 1 15.5-6.36L21 8" />
-                <path d="M21 3v5h-5" />
-                <path d="M21 12a9 9 0 0 1-15.5 6.36L3 16" />
-                <path d="M3 21v-5h5" />
-              </svg>
-              Refresh data
-            </Link>
-          )}
+              <path d="M3 12a9 9 0 0 1 15.5-6.36L21 8" />
+              <path d="M21 3v5h-5" />
+              <path d="M21 12a9 9 0 0 1-15.5 6.36L3 16" />
+              <path d="M3 21v-5h5" />
+            </svg>
+            Refresh data
+          </Link>
           <span
             className={`inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] font-mono px-2.5 py-1 rounded-full border ${sourceStyle}`}
           >
@@ -116,6 +116,13 @@ export default async function AnalysisPage({
           </div>
 
           <ForecastTable scenarios={data.forecast} />
+
+          <RankingContextPanel
+            context={data.ranking_context}
+            peerCount={data.peers.length}
+          />
+
+          <RelativeModelCard model={data.relative_performance} />
 
           <PeersTable peers={data.peers} />
 
