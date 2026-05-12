@@ -157,10 +157,9 @@ def _projected_return(
     future_mcap = earnings_t * terminal_multiple
 
     if future_mcap <= 0:
-        return EXPECTED_RETURN_BOUNDS[0]
+        return -1.0
 
-    raw = (future_mcap / current_market_cap) ** (1.0 / HORIZON_YEARS) - 1.0
-    return _clamp(raw, EXPECTED_RETURN_BOUNDS)
+    return (future_mcap / current_market_cap) ** (1.0 / HORIZON_YEARS) - 1.0
 
 
 def _build_scenario(
