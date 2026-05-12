@@ -19,3 +19,10 @@ dist/
 
 .DS_Store
 Thumbs.db
+
+# Local ML artifacts and generated CSVs (keep out of git; use env paths for models)
+backend/outputs/
+
+# Tooling scratch
+.playwright-mcp/
+out.txt
