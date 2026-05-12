@@ -4,7 +4,7 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
-from backend.app.config import get_settings
+from backend.app.config import Settings, get_settings
 from backend.app.errors import AppError
 from backend.app.models import AnalysisInput
 from backend.app.services.market_data import MarketDataService
@@ -71,4 +71,28 @@ async def run_ingestion(ticker: str) -> IngestionResult:
     return IngestionResult(
         generated_at=generated_at,
         analysis_input=analysis_input,
+    )
+
+
+async def attach_fresh_market_snapshot(
+    analysis_input: AnalysisInput,
+    *,
+    settings: Settings | None = None,
+) -> AnalysisInput:
+    """Replace embedded market quote with latest yfinance snapshot.
+
+    Leaves filings/financial snapshots from persisted ``AnalysisInput`` intact.
+    Forecasts and scores that consume ``market_data`` see current prices each request.
+    """
+    settings = settings or get_settings()
+    market_service = MarketDataService(settings)
+    market_snapshot, enriched_company, _ = await market_service.fetch_market_snapshot(
+        analysis_input.company.ticker,
+        analysis_input.company,
+    )
+    return analysis_input.model_copy(
+        update={
+            "company": enriched_company,
+            "market_data": market_snapshot,
+        }
     )
