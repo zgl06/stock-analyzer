@@ -13,6 +13,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from .contracts import AnalysisInput, CompanySnapshot
+from .document_summary import DocumentSummary
 
 
 ScorePillar = Literal[
@@ -123,26 +124,116 @@ class PeerComparison(BaseModel):
     notes: str | None = None
 
 
-class DocumentSummary(BaseModel):
-    """Qualitative summary derived from filings and earnings text."""
+
+class AmongPeersRanks(BaseModel):
+    """Percentile standings of the subject within the subject plus peer set.
+
+    Values are 0-100, higher means stronger vs the comparison set for that
+    dimension (see methodology note on :class:`RankingContext`).
+    """
 
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
-    management_tone: str | None = None
-    guidance_direction: Literal["up", "down", "flat", "mixed", "unknown"] = "unknown"
-    top_risks: list[str] = Field(default_factory=list)
-    top_positives: list[str] = Field(default_factory=list)
-    thesis_paragraph: str | None = Field(
+    growth_percentile: float | None = Field(
         default=None,
-        description="One-paragraph qualitative thesis suitable for the dashboard.",
+        description="Percentile of YoY revenue growth within peer set.",
     )
-    source_filings: list[str] = Field(
-        default_factory=list,
-        description="Accession numbers of filings that contributed to this summary.",
+    profitability_percentile: float | None = Field(
+        default=None,
+        description="Average percentile of gross and operating margin within peer set.",
     )
-    available: bool = Field(
-        default=True,
-        description="False when the qualitative model layer was unavailable.",
+    valuation_percentile: float | None = Field(
+        default=None,
+        description="Percentile of P/S within peer set (higher = richer multiple).",
+    )
+    composite_proxy_percentile: float | None = Field(
+        default=None,
+        description="Equal-weight proxy across normalized growth, margins, and value vs peers.",
+    )
+
+
+class RankingContext(BaseModel):
+    """Peer, industry, and broad-market rank context for the deep dashboard."""
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    among_peers: AmongPeersRanks = Field(
+        default_factory=AmongPeersRanks,
+        description="Ranks within the live peer set returned for this analysis.",
+    )
+    industry_universe_size: int | None = Field(
+        default=None,
+        description="Count of names used for the industry cohort (including subject).",
+    )
+    industry_percentile: float | None = Field(
+        default=None,
+        description="Proxy composite percentile within industry cohort, 0-100.",
+    )
+    market_universe_size: int | None = Field(
+        default=None,
+        description="Count of names in the market benchmark cohort (including subject).",
+    )
+    market_percentile: float | None = Field(
+        default=None,
+        description="Proxy composite percentile within market benchmark, 0-100.",
+    )
+    methodology_note: str = Field(
+        default="Ranks use a simple normalized proxy of growth, margins, and multiples; not a model forecast.",
+        description="How to interpret the numbers on the UI.",
+    )
+
+
+RelativeModelMethod = Literal["lightgbm", "score_proxy", "unavailable"]
+
+
+class RelativeTercileEstimate(BaseModel):
+    """Expected peer-relative tercile vs a benchmark (5y label definition in the spec)."""
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    benchmark_ticker: str
+    tercile: int | None = Field(
+        default=None,
+        description="1 = bottom third, 3 = top third of expected forward excess; None if unknown.",
+    )
+    score: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description="Model-internal score 0-1 when available; maps to tercile.",
+    )
+    methodology: RelativeModelMethod = "unavailable"
+    detail: str | None = None
+
+
+class RelativePerformanceView(BaseModel):
+    """Separate ML-facing view: vs SPY and vs GICS sector ETF; not the main long-term rating."""
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    horizon_years: int = Field(default=5, ge=1, le=10)
+    as_of: str = Field(
+        ...,
+        description="ISO date: market / feature as-of; labels are 5y forward from here in training.",
+    )
+    gics_sector: str | None = None
+    sector_etf: str | None = None
+    used_parent_etf: bool = Field(
+        default=False,
+        description="True when a parent ETF replaced a missing sector series for labels only.",
+    )
+    vs_spy: RelativeTercileEstimate
+    vs_sector: RelativeTercileEstimate
+    feature_vector_version: str = Field(
+        default="v1",
+        description="Bumped when tabular feature columns change.",
+    )
+    llm_commentary: str | None = Field(
+        default=None,
+        description="Short narrative; numbers come only from the structured fields above.",
+    )
+    disclaimer: str = Field(
+        default="Not investment advice. Estimates are experimental and not a guarantee of 5y excess return.",
     )
 
 
@@ -197,16 +288,37 @@ class AnalysisResponse(BaseModel):
     generated_at: datetime
     source: Literal["fixture", "live"] = Field(
         ...,
-        description="Where the underlying AnalysisInput came from. Day 1 returns 'fixture'.",
+        description="Input provenance marker; API routes use ``live`` for persisted Supabase data.",
     )
     company: CompanySnapshot
     analysis_input: AnalysisInput
     score: ScoreBreakdown
     forecast: list[ForecastScenario]
     peers: list[PeerComparison]
+    ranking_context: RankingContext = Field(
+        default_factory=RankingContext,
+        description="Where the stock sits vs peers, industry, and a broad benchmark.",
+    )
     verdict: InvestmentVerdict
     document_summary: DocumentSummary | None = None
+    relative_performance: RelativePerformanceView | None = Field(
+        default=None,
+        description="5y forward-looking tercile view vs SPY and sector; separate from verdict.",
+    )
     job: AnalysisJobStatus | None = Field(
         default=None,
         description="Latest job status when available; populated once async jobs land.",
     )
+
+
+class PeersResponse(BaseModel):
+    """Response for `GET /peers/{ticker}`: live peers plus ranking context."""
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    ticker: str
+    company_name: str | None = None
+    generated_at: datetime
+    source: Literal["fixture", "live"]
+    peers: list[PeerComparison]
+    ranking_context: RankingContext
