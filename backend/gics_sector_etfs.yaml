@@ -1,0 +1,46 @@
+# GICS sector → SPDR Select Sector ETF (S&P 500 sector slice).
+# Broad market benchmark for excess vs index (not in this file): SPY
+#
+# See docs/long-horizon-relative-performance-spec.md for the full table and
+# parent-fallback rules when history is short (e.g. XLC, XLRE inceptions).
+#
+# source: SPDR Select Sector; typical expense ratio ~0.08–0.09%; highly liquid
+
+broad_index:
+  ticker: SPY
+  name: "SPDR S&P 500 ETF Trust"
+
+sectors:
+  - gics: Energy
+    ticker: XLE
+    name: "Energy Select Sector SPDR"
+  - gics: Materials
+    ticker: XLB
+    name: "Materials Select Sector SPDR"
+  - gics: Industrials
+    ticker: XLI
+    name: "Industrial Select Sector SPDR"
+  - gics: Consumer Discretionary
+    ticker: XLY
+    name: "Consumer Discretionary Select Sector SPDR"
+  - gics: Consumer Staples
+    ticker: XLP
+    name: "Consumer Staples Select Sector SPDR"
+  - gics: Health Care
+    ticker: XLV
+    name: "Health Care Select Sector SPDR"
+  - gics: Financials
+    ticker: XLF
+    name: "Financial Select Sector SPDR"
+  - gics: Information Technology
+    ticker: XLK
+    name: "Technology Select Sector SPDR"
+  - gics: Communication Services
+    ticker: XLC
+    name: "Communication Services Select Sector SPDR"
+  - gics: Utilities
+    ticker: XLU
+    name: "Utilities Select Sector SPDR"
+  - gics: Real Estate
+    ticker: XLRE
+    name: "Real Estate Select Sector SPDR"

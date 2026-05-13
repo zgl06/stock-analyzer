@@ -51,6 +51,9 @@ def test_pipeline_assembles_full_response_from_fixture() -> None:
     assert 0.0 <= response.score.composite_score <= 1.0
     assert response.score.pillars, "score breakdown should include pillar contributions"
 
+    assert response.ranking_context is not None
+    assert response.ranking_context.methodology_note
+
     scenarios = {s.scenario for s in response.forecast}
     assert scenarios == {"bear", "base", "bull"}
 
@@ -64,13 +67,14 @@ def test_pipeline_assembles_full_response_from_fixture() -> None:
     assert response.verdict.rating in {"Strong Buy", "Buy", "Hold", "Avoid"}
     assert 0.0 <= response.verdict.confidence <= 1.0
 
-    assert response.document_summary is not None
-    assert response.document_summary.available is True
+    # document_summary is None from the pipeline; it is populated by the route
+    # layer when enable_qualitative_summary is true (L3).
+    assert response.document_summary is None
 
 
-def test_pipeline_can_skip_optional_summary() -> None:
+def test_pipeline_document_summary_is_none() -> None:
     analysis_input = load_analysis_input_fixture("AAPL")
-    response = run_analysis_pipeline(analysis_input, include_summary=False)
+    response = run_analysis_pipeline(analysis_input)
 
     assert response.document_summary is None
 

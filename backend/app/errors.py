@@ -21,3 +21,11 @@ class UpstreamServiceError(AppError):
 class PersistenceError(AppError):
     def __init__(self, message: str) -> None:
         super().__init__(message, status_code=500)
+
+
+class LLMError(AppError):
+    """Raised when the LLM call fails, times out, returns unparseable output,
+    or exhausts its retry budget."""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message, status_code=502)
